@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Currently pointed at the trade.technosphereinnovations.com testing
+  subdomain. robots.txt blocks all crawling while this is pre-launch, so
+  this file is inert for now -- update every URL below to housebank.com
+  (and flip robots.txt back to allow-listing, see its own comment) once
+  this is the real launch. Only pages with real, non-gated, indexable
+  content are listed -- dashboards and auth pages are excluded (see
+  robots.txt and each page's noindex tag).
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://trade.technosphereinnovations.com/</loc><priority>1.0</priority></url>
+  <url><loc>https://trade.technosphereinnovations.com/explore</loc><priority>0.9</priority></url>
+  <url><loc>https://trade.technosphereinnovations.com/investment</loc><priority>0.9</priority></url>
+  <url><loc>https://trade.technosphereinnovations.com/about-us</loc><priority>0.7</priority></url>
+  <url><loc>https://trade.technosphereinnovations.com/agents</loc><priority>0.7</priority></url>
+  <url><loc>https://trade.technosphereinnovations.com/realtor-landing</loc><priority>0.7</priority></url>
+  <url><loc>https://trade.technosphereinnovations.com/property-management</loc><priority>0.7</priority></url>
+  <url><loc>https://trade.technosphereinnovations.com/services</loc><priority>0.6</priority></url>
+  <url><loc>https://trade.technosphereinnovations.com/help-center</loc><priority>0.6</priority></url>
+  <url><loc>https://trade.technosphereinnovations.com/blogs</loc><priority>0.6</priority></url>
+  <url><loc>https://trade.technosphereinnovations.com/privacy-policy</loc><priority>0.3</priority></url>
+  <url><loc>https://trade.technosphereinnovations.com/anti-discrimination</loc><priority>0.3</priority></url>
+</urlset>

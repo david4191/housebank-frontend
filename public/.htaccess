@@ -1,0 +1,17 @@
+# React Router client-side routing fix for Apache/LiteSpeed (Namecheap
+# cPanel). Without this, any direct visit or refresh on a route other
+# than "/" (e.g. /explore, /agent/dashboard) 404s, because Apache looks
+# for a real file/folder at that path and there isn't one -- React
+# Router only handles routing once index.html has already loaded.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Serve real files and directories as-is (JS/CSS/image assets, etc.)
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Everything else falls back to index.html so React Router can render it
+  RewriteRule ^ index.html [L]
+</IfModule>

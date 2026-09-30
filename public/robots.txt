@@ -1,0 +1,28 @@
+# TESTING SUBDOMAIN (trade.technosphereinnovations.com) — block crawlers
+# entirely while this is a pre-launch test deployment, so Google doesn't
+# index a staging copy of the site under the company's main domain.
+#
+# When this moves to housebank.com for real, replace everything below
+# with:
+#
+#   User-agent: *
+#   Allow: /
+#
+#   Disallow: /customer/
+#   Disallow: /agent/
+#   Disallow: /company/
+#   Disallow: /admin/
+#   Disallow: /signin
+#   Disallow: /signup
+#   Disallow: /signup-seller
+#   Disallow: /signup-buyer
+#   Disallow: /verify-otp
+#   Disallow: /forgot-password
+#   Disallow: /realtor-onboarding/
+#
+#   Sitemap: https://housebank.com/sitemap.xml
+#
+# ...and update sitemap.xml's URLs the same way, then rebuild.
+
+User-agent: *
+Disallow: /
