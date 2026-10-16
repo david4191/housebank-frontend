@@ -6,13 +6,13 @@ import useAuth from '../hooks/useAuth.tsx';
 import { roleHomePath } from '../context/AuthContext.tsx';
 
 export const authInputStyle = `w-full h-12 bg-[color:var(--color-bg)] border border-[color:var(--color-border)]
-              rounded-md px-4 text-base text-[color:var(--color-border)] placeholder-[color:var(--color-border)]
+              rounded-md px-4 text-base text-[color:var(--color-dark)] placeholder-[color:var(--color-gray)]
               outline-none focus:ring-2 focus:ring-[color:var(--color-green)] focus:border-[color:var(--color-green)] transition-all`;
 
 export const authContainerStyle = `w-full md:w-3/5 h-full flex flex-col place-content-center px-6 sm:px-10 md:px-12`;
 
 export const authOTPInputStyle = `w-10 h-10 sm:w-12 sm:h-12 bg-[color:var(--color-white)] border border-[color:var(--color-border)] rounded-md text-center text-lg sm:text-xl font-semibold
-text-[color:var(--color-text)] outline-none focus:ring-2 focus:ring-[color:var(--color-green)] focus:border-[color:var(--color-green)] transition-all`;
+text-[color:var(--color-dark)] outline-none focus:ring-2 focus:ring-[color:var(--color-green)] focus:border-[color:var(--color-green)] transition-all`;
 
 import Seo from '../components/Seo.tsx';
 
