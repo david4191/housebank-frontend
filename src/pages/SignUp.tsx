@@ -4,6 +4,7 @@ import AuthTitle from '../components/AuthTitle.tsx';
 import Button from '../components/Button.tsx';
 import { authContainerStyle, authInputStyle } from './SignIn.tsx';
 import useAuth from '../hooks/useAuth.tsx';
+import { isValidEmail } from '../utils/emailValidation.ts';
 
 // Registered company / agency sign-up. Matches hb-backend's `role: 'company'`
 // shape: companyName, companyAddress, cacNumber, email, phone, password, and
@@ -55,6 +56,10 @@ export default function SignUpSeller() {
       setError('Please fill in every field.');
       return;
     }
+    if (!isValidEmail(formData.email)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
     if (formData.password.length < 8 || !/[a-zA-Z]/.test(formData.password) || !/\d/.test(formData.password)) {
       setError('Password must be at least 8 characters and include a letter and a number.');
       return;
@@ -73,7 +78,7 @@ export default function SignUpSeller() {
     body.append('companyName', formData.companyName);
     body.append('companyAddress', formData.companyAddress);
     body.append('cacNumber', formData.cacNumber);
-    body.append('email', formData.email);
+    body.append('email', formData.email.trim());
     body.append('phone', formData.phone);
     body.append('password', formData.password);
     body.append('cacFile', formData.cacFile);

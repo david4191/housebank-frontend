@@ -4,6 +4,7 @@ import Button from '../components/Button.tsx';
 import AuthTitle from '../components/AuthTitle.tsx';
 import useAuth from '../hooks/useAuth.tsx';
 import { roleHomePath } from '../context/AuthContext.tsx';
+import { isValidEmail } from '../utils/emailValidation.ts';
 
 export const authInputStyle = `w-full h-12 bg-[color:var(--color-bg)] border border-[color:var(--color-border)]
               rounded-md px-4 text-base text-[color:var(--color-dark)] placeholder-[color:var(--color-gray)]
@@ -42,13 +43,17 @@ export default function SignIn() {
     if (submitting) return;
     setError('');
 
-    if (!email || !password) {
-      setError('Please enter your email/phone and password.');
+    if (!email.trim() || !password) {
+      setError('Please enter your email and password.');
+      return;
+    }
+    if (!isValidEmail(email)) {
+      setError('Please enter a valid email address.');
       return;
     }
 
     setSubmitting(true);
-    const result = await auth.login({ userName: email, password });
+    const result = await auth.login({ userName: email.trim(), password });
     setSubmitting(false);
 
     if (result.ok) {

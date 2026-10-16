@@ -5,6 +5,7 @@ import AuthTitle from '../components/AuthTitle.tsx';
 import { authContainerStyle, authInputStyle } from './SignIn.tsx';
 import Button from '../components/Button.tsx';
 import useAuth from '../hooks/useAuth.tsx';
+import { isValidEmail } from '../utils/emailValidation.ts';
 
 // This is the plain customer (property buyer/browser) sign-up form — no
 // documents required, matching hb-backend's `role: 'customer'` signup shape
@@ -41,6 +42,10 @@ export default function SignUpUser() {
       setError('Please fill in every field.');
       return;
     }
+    if (!isValidEmail(formData.email)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
     if (formData.password.length < 8 || !/[a-zA-Z]/.test(formData.password) || !/\d/.test(formData.password)) {
       setError('Password must be at least 8 characters and include a letter and a number.');
       return;
@@ -54,7 +59,7 @@ export default function SignUpUser() {
     const result = await auth.register({
       role: 'customer',
       fullName: formData.fullName,
-      email: formData.email,
+      email: formData.email.trim(),
       phone: formData.phone,
       password: formData.password,
     });
