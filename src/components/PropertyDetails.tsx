@@ -6,6 +6,7 @@ import {
   useGetPropertyQuery,
   useGetMyViewingsQuery,
   useCreateViewingMutation,
+  useAddToWishlistMutation,
   useGetInvestmentOpportunityByPropertyQuery,
   useCreateInvestmentMutation,
 } from '../redux/housebank.ts';
@@ -49,6 +50,7 @@ const PropertyDetail = () => {
   const { data: property, isLoading, isError } = useGetPropertyQuery(id as string, { skip: !id });
   const { data: myViewings } = useGetMyViewingsQuery(undefined, { skip: !auth.user || auth.user.role !== 'customer' });
   const [createViewing, { isLoading: submitting }] = useCreateViewingMutation();
+  const [addToWishlist, { isLoading: savingToWishlist }] = useAddToWishlistMutation();
   // Only fires for an investment-type listing -- no point looking up an
   // investment_properties row for a sale/rent property that will never
   // have one.
@@ -71,6 +73,17 @@ const PropertyDetail = () => {
   const [investAmount, setInvestAmount] = useState('');
   const [investError, setInvestError] = useState<string | null>(null);
   const [investSuccess, setInvestSuccess] = useState<string | null>(null);
+  const [wishlistError, setWishlistError] = useState<string | null>(null);
+
+  const handleAddToWishlist = async () => {
+    setWishlistError(null);
+    try {
+      await addToWishlist({ property_id: Number(id) }).unwrap();
+      navigate('/customer/wishlist');
+    } catch {
+      setWishlistError('Unable to save this property. Please try again.');
+    }
+  };
 
   const existingViewing = (myViewings || []).find(
     (v: any) => String(v.property_id) === String(id) && ['requested', 'confirmed'].includes(v.status)
@@ -326,14 +339,16 @@ const PropertyDetail = () => {
                   </button>
                   {auth.user?.role === 'customer' && (
                     <button
-                      onClick={() => navigate('/customer/wishlist')}
+                      onClick={handleAddToWishlist}
+                      disabled={savingToWishlist}
                       className="ml-auto border border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-2 rounded-lg font-medium flex items-center gap-2"
                     >
                       <Heart className="w-4 h-4" />
-                      Add to wishlist
+                      {savingToWishlist ? 'Saving...' : 'Add to wishlist'}
                     </button>
                   )}
                 </div>
+                {wishlistError && <p role="alert" className="mt-3 text-sm text-red-600">{wishlistError}</p>}
                 <p className="text-xs text-gray-500 mt-3">
                   {property.listing_type === 'investment'
                     ? "Investing here records your intent — it's confirmed once our team verifies payment, the same manual-confirm step every investment on HouseBank goes through."

@@ -1,7 +1,7 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, MapPin, Bed, Bath, Square } from 'lucide-react';
 import { useGetPropertiesQuery } from '../redux/housebank.ts';
+import usePropertyWishlist from '../hooks/usePropertyWishlist.ts';
 
 function formatNaira(value: number | string | undefined | null) {
   const n = typeof value === 'string' ? parseFloat(value) : value ?? 0;
@@ -27,18 +27,12 @@ const listingTypeBadge: Record<string, { label: string; className: string }> = {
  */
 const TopOffers = () => {
   const navigate = useNavigate();
-  const [favorites, setFavorites] = useState<number[]>([]);
+  const wishlist = usePropertyWishlist();
   const { data: result, isLoading } = useGetPropertiesQuery({ per_page: 4 });
   const properties = result?.items || [];
 
-  const toggleFavorite = (propertyId: number) => {
-    setFavorites((prev) =>
-      prev.includes(propertyId) ? prev.filter((id) => id !== propertyId) : [...prev, propertyId]
-    );
-  };
-
   const PropertyCard = ({ property }: { property: any }) => {
-    const isFavorite = favorites.includes(property.id);
+    const isFavorite = wishlist.isSaved(property.id);
     const img = imageUrl(property.cover_image);
     const badge = listingTypeBadge[property.listing_type] || listingTypeBadge.sale;
     const isUnverified =
@@ -76,15 +70,20 @@ const TopOffers = () => {
           )}
 
           {/* Heart Icon */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleFavorite(property.id);
-            }}
-            className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-sm hover:shadow-md transition-shadow"
-          >
-            <Heart className={`w-4 h-4 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
-          </button>
+          {wishlist.canSave && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                void wishlist.toggle(property.id);
+              }}
+              disabled={String(wishlist.busyId) === String(property.id)}
+              aria-label={`${isFavorite ? 'Remove' : 'Add'} ${property.title} ${isFavorite ? 'from' : 'to'} wishlist`}
+              className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-sm hover:shadow-md transition-shadow disabled:opacity-50"
+            >
+              <Heart className={`w-4 h-4 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
+            </button>
+          )}
         </div>
 
         {/* Property Details */}
@@ -154,6 +153,8 @@ const TopOffers = () => {
             </svg>
           </button>
         </div>
+
+        {wishlist.error && <p role="alert" className="mb-4 text-sm text-red-600">{wishlist.error}</p>}
 
         {/* Property Grid */}
         {isLoading ? (

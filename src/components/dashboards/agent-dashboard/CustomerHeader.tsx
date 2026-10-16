@@ -83,10 +83,10 @@ const CustomerHeader = () => {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <h1 className="text-xl font-semibold text-gray-900">Dashboard</h1>
+    <header className="bg-white border-b border-gray-200 px-3 py-3 sm:px-6 sm:py-4">
+      <div className="flex items-center justify-between gap-2 sm:gap-3">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <h1 className="whitespace-nowrap text-lg font-semibold text-gray-900 sm:text-xl">Dashboard</h1>
           <Link
             to="/realtor-landing"
             className="inline-flex items-center text-xs font-medium text-gray-500 hover:text-green-700 border border-gray-200 rounded-full px-3 py-1 transition-colors"
@@ -97,7 +97,7 @@ const CustomerHeader = () => {
           </Link>
         </div>
 
-        <div className="flex items-center space-x-3 sm:space-x-6" ref={controlsRef}>
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3 lg:gap-6" ref={controlsRef}>
           {/* Search Bar — hidden on small screens, same as the customer
               header, since it doesn't filter anything yet and eats the
               whole row on mobile */}
@@ -151,7 +151,7 @@ const CustomerHeader = () => {
               )}
             </button>
             {openMenu === "notifications" && (
-              <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+              <div className="fixed right-3 top-16 z-50 w-[calc(100vw-1.5rem)] max-w-80 bg-white border border-gray-200 rounded-lg shadow-lg sm:absolute sm:right-0 sm:top-auto sm:z-20 sm:mt-2 sm:w-80">
                 <div className="px-4 py-3 border-b border-gray-100 font-semibold text-sm text-gray-900">
                   Notifications
                 </div>
@@ -193,7 +193,7 @@ const CustomerHeader = () => {
             <button
               type="button"
               onClick={() => setOpenMenu(openMenu === "profile" ? null : "profile")}
-              className="flex items-center space-x-2 sm:space-x-3"
+              className="flex items-center gap-1 sm:gap-2"
             >
               <div className="w-8 h-8 rounded-full bg-green-700 text-white flex items-center justify-center text-xs font-semibold overflow-hidden flex-shrink-0">
                 {avatar && !profileLoading ? (
@@ -203,7 +203,7 @@ const CustomerHeader = () => {
                 )}
               </div>
               <div className="hidden sm:flex flex-col text-left">
-                <span className="text-sm font-medium text-gray-900">{displayName}</span>
+                <span className="max-w-40 truncate text-sm font-medium text-gray-900">{displayName}</span>
                 <span className="text-xs text-gray-500">{roleLabel}</span>
               </div>
               <ChevronDown className="w-4 h-4 text-gray-400" />

@@ -1,132 +1,42 @@
 import { useState } from 'react';
-import { MoreHorizontal, ChevronDown, Heart } from 'lucide-react';
+import { Heart, MapPin, Trash2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import CustomerHeader from './CustomerHeader';
+import {
+  useGetMyWishlistQuery,
+  useRemoveFromWishlistMutation,
+} from '../../../redux/housebank.ts';
 
-// Property data types
-interface Property {
-  id: number;
-  image: string;
-  address: string;
-  company: string;
-  agent: string;
-  status: 'Available' | 'Sold' | 'Rent';
-  category: string;
-  action: 'Buy' | 'Rent' | 'Sold';
+function imageUrl(path: string | null | undefined) {
+  if (!path) return null;
+  return path.startsWith('http') ? path : `${import.meta.env.VITE_APP_BACKEND_HOST}${path}`;
 }
 
-interface HotSale {
-  id: number;
-  name: string;
-  price: string;
-  duration: string;
-  image: string;
-  favorite?: boolean;
+function formatPrice(price: number | string | null | undefined, currency: string | null | undefined) {
+  const amount = typeof price === 'string' ? Number(price) : price;
+  if (amount == null || !Number.isFinite(amount)) return 'Price on request';
+  return new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: currency || 'NGN',
+    maximumFractionDigits: 0,
+  }).format(amount);
 }
 
 const CustomerWishlist = () => {
-  // Sample property data
-  const properties: Property[] = [
-    {
-      id: 1,
-      image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=100&h=60&fit=crop',
-      address: '2079 Washington Rd, Sewickley Heights PA 15143',
-      company: 'Efab',
-      agent: 'Wade Warren',
-      status: 'Available',
-      category: 'Bungalow',
-      action: 'Buy'
-    },
-    {
-      id: 2,
-      image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=100&h=60&fit=crop',
-      address: '4118 Thornridge Cir. Syracuse, Connecticut 35624',
-      company: 'Efab',
-      agent: 'Cameron Williamson',
-      status: 'Rent',
-      category: 'Apartment',
-      action: 'Rent'
-    },
-    {
-      id: 3,
-      image: 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=100&h=60&fit=crop',
-      address: '3517 Washington Ave. Manchester, Kentucky 39495',
-      company: 'Efab',
-      agent: 'Brooklyn Simmons',
-      status: 'Sold',
-      category: 'Duplex',
-      action: 'Sold'
-    }
-  ];
+  const { data: properties = [], isLoading, isError } = useGetMyWishlistQuery();
+  const [removeFromWishlist, { isLoading: isRemoving }] = useRemoveFromWishlistMutation();
+  const [removingId, setRemovingId] = useState<number | string | null>(null);
+  const [removeError, setRemoveError] = useState<string | null>(null);
 
-  // Hot sales data
-  const hotSales: HotSale[] = [
-    {
-      id: 1,
-      name: 'Land Investment',
-      price: '₦1,000,000',
-      duration: '15 Months',
-      image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=300&h=200&fit=crop',
-      favorite: false
-    },
-    {
-      id: 2,
-      name: 'Rendez House Bay',
-      price: '₦1,000,000',
-      duration: '22 Months',
-      image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=300&h=200&fit=crop',
-      favorite: false
-    },
-    {
-      id: 3,
-      name: 'Rendez House Bay',
-      price: '₦1,000,000',
-      duration: '8 Months',
-      image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=300&h=200&fit=crop',
-      favorite: false
-    },
-    {
-      id: 4,
-      name: 'Land Investment',
-      price: '₦1,000,000',
-      duration: '24 Months',
-      image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=300&h=200&fit=crop',
-      favorite: false
-    }
-  ];
-
-  const [favorites, setFavorites] = useState<number[]>([]);
-
-  const toggleFavorite = (id: number) => {
-    setFavorites(prev => 
-      prev.includes(id) 
-        ? prev.filter(fav => fav !== id)
-        : [...prev, id]
-    );
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Available':
-        return 'bg-blue-100 text-blue-800';
-      case 'Rent':
-        return 'bg-orange-100 text-orange-800';
-      case 'Sold':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getActionColor = (action: string) => {
-    switch (action) {
-      case 'Buy':
-        return 'text-blue-600 hover:text-blue-700';
-      case 'Rent':
-        return 'text-orange-600 hover:text-orange-700';
-      case 'Sold':
-        return 'text-gray-600';
-      default:
-        return 'text-gray-600';
+  const handleRemove = async (propertyId: number | string) => {
+    setRemovingId(propertyId);
+    setRemoveError(null);
+    try {
+      await removeFromWishlist(propertyId).unwrap();
+    } catch {
+      setRemoveError('Could not remove this property. Please try again.');
+    } finally {
+      setRemovingId(null);
     }
   };
 
@@ -136,116 +46,95 @@ const CustomerWishlist = () => {
       <CustomerHeader />
 
       {/* Main Content */}
-      <div className="p-6">
-        {/* Properties Table */}
-        <div className="bg-white rounded-xl border border-gray-200 mb-8">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-4 px-6 font-semibold text-gray-900">Property</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-900">Address</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-900">Company</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-900">Realtor</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-900">Status</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-900">Category</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-900">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {properties.map((property) => (
-                  <tr key={property.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-4 px-6">
-                      <div className="flex items-center space-x-3">
-                        <img 
-                          src={property.image} 
-                          alt="Property" 
-                          className="w-12 h-8 object-cover rounded"
-                        />
-                        <span className="text-sm text-gray-600">Luxury Apartment</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className="text-sm text-gray-900">{property.address}</span>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className="text-sm text-gray-900">{property.company}</span>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className="text-sm text-gray-900">{property.agent}</span>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(property.status)}`}>
-                        {property.status}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className="text-sm text-gray-900">{property.category}</span>
-                    </td>
-                    <td className="py-4 px-6">
-                      <button className={`text-sm font-medium ${getActionColor(property.action)}`}>
-                        {property.action}
-                      </button>
-                      <button className="ml-3 p-1 hover:bg-gray-100 rounded">
-                        <MoreHorizontal className="w-4 h-4 text-gray-400" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <div className="p-4 sm:p-6">
+        <div className="mb-5 flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">My Wishlist</h2>
+            {!isLoading && <p className="mt-1 text-sm text-gray-500">{properties.length} saved {properties.length === 1 ? 'property' : 'properties'}</p>}
           </div>
+          <Link to="/explore" className="shrink-0 rounded-lg bg-green-700 px-4 py-2 text-sm font-medium text-white hover:bg-green-800">
+            Explore properties
+          </Link>
         </div>
 
-        {/* Hot Sales/Promotions */}
-        <div className="bg-white rounded-xl border border-gray-200">
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <h3 className="text-xl font-bold text-gray-900">Hot Sales/Promotions</h3>
-            <button className="text-green-600 hover:text-green-700 text-sm font-medium flex items-center">
-              Explore all
-              <ChevronDown className="w-4 h-4 ml-1 rotate-[-90deg]" />
-            </button>
+        {removeError && <p role="alert" className="mb-4 text-sm text-red-600">{removeError}</p>}
+
+        {isLoading ? (
+          <div className="rounded-lg border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">Loading your saved properties...</div>
+        ) : isError ? (
+          <div role="alert" className="rounded-lg border border-red-200 bg-white p-8 text-center text-sm text-red-700">
+            We could not load your wishlist. Please refresh and try again.
           </div>
-          
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {hotSales.map((property) => (
-                <div key={property.id} className="relative group">
-                  <div className="relative overflow-hidden rounded-lg">
-                    <img 
-                      src={property.image} 
-                      alt={property.name} 
-                      className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-200"
-                    />
-                    <button 
-                      onClick={() => toggleFavorite(property.id)}
-                      className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-sm hover:bg-gray-100"
-                    >
-                      <Heart 
-                        className={`w-4 h-4 ${
-                          favorites.includes(property.id) 
-                            ? 'text-red-500 fill-red-500' 
-                            : 'text-gray-600'
-                        }`} 
-                      />
-                    </button>
-                    
-                    {/* Overlay content */}
-                    <div className="absolute inset-0 bg-black bg-opacity-40 flex items-end">
-                      <div className="p-4 text-white w-full">
-                        <div className="bg-white bg-opacity-90 text-gray-900 px-2 py-1 rounded text-xs font-medium mb-2 inline-block">
-                          {property.duration}
-                        </div>
-                        <h4 className="font-semibold text-sm mb-1">{property.name}</h4>
-                        <p className="text-sm font-bold">{property.price}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+        ) : properties.length === 0 ? (
+          <div className="rounded-lg border border-gray-200 bg-white px-6 py-14 text-center">
+            <Heart className="mx-auto h-8 w-8 text-gray-400" />
+            <h3 className="mt-3 font-semibold text-gray-900">Your wishlist is empty</h3>
+            <p className="mt-1 text-sm text-gray-500">Save properties you like and they will appear here.</p>
+            <Link to="/explore" className="mt-5 inline-flex rounded-lg bg-green-700 px-4 py-2 text-sm font-medium text-white hover:bg-green-800">
+              Browse properties
+            </Link>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] text-left">
+                <thead className="border-b border-gray-200 bg-gray-50 text-sm text-gray-600">
+                  <tr>
+                    <th className="px-5 py-3 font-medium">Property</th>
+                    <th className="px-5 py-3 font-medium">Location</th>
+                    <th className="px-5 py-3 font-medium">Company / Realtor</th>
+                    <th className="px-5 py-3 font-medium">Type</th>
+                    <th className="px-5 py-3 font-medium">Price</th>
+                    <th className="px-5 py-3 font-medium"><span className="sr-only">Actions</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {properties.map((property: any) => {
+                    const image = imageUrl(property.cover_image);
+                    const location = [property.address, property.city, property.state].filter(Boolean).join(', ');
+                    const listingType = ({ sale: 'For sale', rent: 'For rent', investment: 'Investment' } as Record<string, string>)[property.listing_type] || property.listing_type;
+
+                    return (
+                      <tr key={property.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                        <td className="px-5 py-4">
+                          <Link to={`/property-details/${property.id}`} className="flex min-w-56 items-center gap-3">
+                            <div className="h-12 w-16 shrink-0 overflow-hidden rounded bg-gray-100">
+                              {image && <img src={image} alt={property.title} className="h-full w-full object-cover" />}
+                            </div>
+                            <span className="font-medium text-gray-900">{property.title}</span>
+                          </Link>
+                        </td>
+                        <td className="px-5 py-4 text-sm text-gray-600">
+                          <span className="flex max-w-56 items-start gap-2">
+                            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
+                            {location || 'Location not specified'}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 text-sm text-gray-600">
+                          <span className="block">{property.company_name || 'Independent listing'}</span>
+                          {property.realtor_name && <span className="mt-1 block text-xs text-gray-500">{property.realtor_name}</span>}
+                        </td>
+                        <td className="px-5 py-4 text-sm capitalize text-gray-600">{property.property_type_name || listingType}</td>
+                        <td className="whitespace-nowrap px-5 py-4 text-sm font-medium text-gray-900">{formatPrice(property.price, property.currency)}</td>
+                        <td className="px-5 py-4">
+                          <button
+                            type="button"
+                            onClick={() => handleRemove(property.id)}
+                            disabled={isRemoving}
+                            aria-label={`Remove ${property.title} from wishlist`}
+                            className="rounded p-2 text-gray-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

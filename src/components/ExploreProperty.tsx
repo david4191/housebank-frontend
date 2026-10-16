@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { MapPin, Bed, Bath, Square, Heart, Search, ChevronDown } from 'lucide-react';
 import { useGetPropertiesQuery, useGetPropertyTypesQuery } from '../redux/housebank.ts';
+import usePropertyWishlist from '../hooks/usePropertyWishlist.ts';
 
 function formatNaira(value: number | string | undefined | null) {
   const n = typeof value === 'string' ? parseFloat(value) : value ?? 0;
@@ -34,6 +35,7 @@ type Filters = Record<string, string | number | undefined>;
  */
 const ExploreProperty = () => {
   const navigate = useNavigate();
+  const wishlist = usePropertyWishlist();
   const [searchParams] = useSearchParams();
   const gridRef = useRef<HTMLDivElement>(null);
   const [activeCategory, setActiveCategory] = useState('All Property');
@@ -80,8 +82,6 @@ const ExploreProperty = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
-  const [favorites, setFavorites] = useState<number[]>([]);
-
   const categories = ['All Property', 'Buy', 'Rent', 'Land', 'Invest', 'List Property'];
 
   const { data: propertyTypes } = useGetPropertyTypesQuery();
@@ -140,14 +140,8 @@ const ExploreProperty = () => {
     gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const toggleFavorite = (propertyId: number) => {
-    setFavorites((prev) =>
-      prev.includes(propertyId) ? prev.filter((id) => id !== propertyId) : [...prev, propertyId]
-    );
-  };
-
   const PropertyCard = ({ property }: { property: any }) => {
-    const isFavorite = favorites.includes(property.id);
+    const isFavorite = wishlist.isSaved(property.id);
     const img = imageUrl(property.cover_image);
     const badge = listingTypeBadge[property.listing_type] || listingTypeBadge.sale;
     const isUnverified =
@@ -182,12 +176,17 @@ const ExploreProperty = () => {
           )}
 
           {/* Heart Icon */}
-          <button
-            onClick={() => toggleFavorite(property.id)}
-            className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-sm hover:shadow-md transition-shadow"
-          >
-            <Heart className={`w-4 h-4 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
-          </button>
+          {wishlist.canSave && (
+            <button
+              type="button"
+              onClick={() => void wishlist.toggle(property.id)}
+              disabled={String(wishlist.busyId) === String(property.id)}
+              aria-label={`${isFavorite ? 'Remove' : 'Add'} ${property.title} ${isFavorite ? 'from' : 'to'} wishlist`}
+              className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-sm hover:shadow-md transition-shadow disabled:opacity-50"
+            >
+              <Heart className={`w-4 h-4 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
+            </button>
+          )}
         </div>
 
         {/* Property Details */}
@@ -336,6 +335,8 @@ const ExploreProperty = () => {
             ))}
           </div>
         </div>
+
+        {wishlist.error && <p role="alert" className="mb-4 text-sm text-red-600">{wishlist.error}</p>}
 
         {/* Property Grid */}
         <div ref={gridRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

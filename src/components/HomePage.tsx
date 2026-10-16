@@ -58,9 +58,9 @@ const MainContent = () => {
     <div className="bg-white">
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Left Content */}
-          <div className="space-y-8">
+          <div className="relative z-10 space-y-8">
             <div className="space-y-4">
               <h1 className="text-5xl lg:text-6xl font-bold leading-tight">
                 <span className="text-green-700">Rent, Buy & Invest</span>
@@ -153,12 +153,12 @@ const MainContent = () => {
           </div>
 
           {/* Right Content - House Image */}
-          <div className="relative">
-            <div className="w-full h-96 lg:h-[500px] rounded-3xl overflow-hidden">
+          <div className="pointer-events-none absolute inset-0 z-0 lg:pointer-events-auto lg:static">
+            <div className="absolute inset-0 overflow-hidden lg:relative lg:inset-auto lg:h-[500px] lg:rounded-3xl">
               <img 
                 src={houseImage}
                 alt="Modern luxury house" 
-                className="w-full h-full object-cover"
+                className="h-full w-full object-cover opacity-20 lg:opacity-100"
               />
             </div>
           </div>

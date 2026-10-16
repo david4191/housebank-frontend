@@ -82,7 +82,7 @@ const baseQueryWithReauth: BaseQueryFn<
 
 export const houseBankApi = createApi({
   reducerPath: 'houseBankApi',
-  tagTypes: ['auth', 'properties', 'property', 'adminProperties', 'adminOverview', 'adminNotifications', 'adminAppeals', 'propertyAppeals', 'content', 'investments', 'notifications', 'transactions', 'purchases', 'rentals', 'viewings', 'contacts', 'conversations', 'profile', 'paymentMethods', 'companyAgents', 'publicCompanies', 'publicAgents', 'adminCompanies', 'adminRealtors', 'adminCustomers', 'adminReports', 'adminReviews', 'pageContent'],
+  tagTypes: ['auth', 'properties', 'property', 'wishlist', 'adminProperties', 'adminOverview', 'adminNotifications', 'adminAppeals', 'propertyAppeals', 'content', 'investments', 'notifications', 'transactions', 'purchases', 'rentals', 'viewings', 'contacts', 'conversations', 'profile', 'paymentMethods', 'companyAgents', 'publicCompanies', 'publicAgents', 'adminCompanies', 'adminRealtors', 'adminCustomers', 'adminReports', 'adminReviews', 'pageContent'],
   baseQuery: baseQueryWithReauth,
   endpoints: (builder) => ({
     // ---------------------------------------------------------------- auth
@@ -205,6 +205,26 @@ export const houseBankApi = createApi({
       query: (filters) => ({ url: 'properties', params: filters ?? {} }),
       transformResponse: (response: Envelope) => response.data,
       providesTags: ['properties'],
+    }),
+
+    getMyWishlist: builder.query<any[], void>({
+      query: () => 'wishlist/mine',
+      transformResponse: (response: Envelope) => response.data,
+      providesTags: ['wishlist'],
+    }),
+
+    addToWishlist: builder.mutation<{ property_id: number }, { property_id: number | string }>({
+      query: (body) => ({ url: 'wishlist', method: 'POST', body }),
+      transformResponse: (response: Envelope) => response.data,
+      transformErrorResponse: (response) => response.data as Envelope,
+      invalidatesTags: ['wishlist'],
+    }),
+
+    removeFromWishlist: builder.mutation<null, number | string>({
+      query: (propertyId) => ({ url: `wishlist/${propertyId}`, method: 'DELETE' }),
+      transformResponse: (response: Envelope) => response.data,
+      transformErrorResponse: (response) => response.data as Envelope,
+      invalidatesTags: ['wishlist'],
     }),
 
     getPropertyTypes: builder.query<any[], void>({
@@ -1304,6 +1324,9 @@ export const {
   useConfirmTwoFactorMutation,
   useDisableTwoFactorMutation,
   useGetPropertiesQuery,
+  useGetMyWishlistQuery,
+  useAddToWishlistMutation,
+  useRemoveFromWishlistMutation,
   useGetPropertyTypesQuery,
   useGetPropertyQuery,
   useGetMyPropertiesQuery,

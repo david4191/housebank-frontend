@@ -7,6 +7,7 @@ import {
   useGetPropertyQuery,
   useGetMyViewingsQuery,
   useCreateViewingMutation,
+  useAddToWishlistMutation,
 } from '../../../redux/housebank.ts';
 
 function formatNaira(value: number | string | undefined | null) {
@@ -34,6 +35,7 @@ const CustomerPropertyDetailsPageOne = () => {
   const { data: property, isLoading, isError } = useGetPropertyQuery(id as string, { skip: !id });
   const { data: myViewings } = useGetMyViewingsQuery();
   const [createViewing, { isLoading: submitting }] = useCreateViewingMutation();
+  const [addToWishlist, { isLoading: savingToWishlist }] = useAddToWishlistMutation();
 
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
@@ -42,6 +44,17 @@ const CustomerPropertyDetailsPageOne = () => {
   const [message, setMessage] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
+  const [wishlistError, setWishlistError] = useState<string | null>(null);
+
+  const handleAddToWishlist = async () => {
+    setWishlistError(null);
+    try {
+      await addToWishlist({ property_id: Number(id) }).unwrap();
+      navigate('/customer/wishlist');
+    } catch {
+      setWishlistError('Unable to save this property. Please try again.');
+    }
+  };
 
   const existingViewing = (myViewings || []).find(
     (v: any) => String(v.property_id) === String(id) && ['requested', 'confirmed'].includes(v.status)
@@ -202,12 +215,14 @@ const CustomerPropertyDetailsPageOne = () => {
                     {listingTypeCta[property.listing_type] || 'Enquire'}
                   </button>
                   <button
-                    onClick={() => navigate('/customer/wishlist')}
+                    onClick={handleAddToWishlist}
+                    disabled={savingToWishlist}
                     className="ml-auto border border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-2 rounded-lg font-medium"
                   >
-                    Add to wishlist
+                    {savingToWishlist ? 'Saving...' : 'Add to wishlist'}
                   </button>
                 </div>
+                {wishlistError && <p role="alert" className="mt-3 text-sm text-red-600">{wishlistError}</p>}
                 <p className="text-xs text-gray-500 mt-3">
                   HouseBank doesn't do instant checkout — buying, renting, or investing starts with booking a
                   viewing below. The sale itself is agreed and processed at the office.
