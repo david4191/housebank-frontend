@@ -99,7 +99,7 @@ export default function RealtorOnboarding() {
     body.append('email', invite.email);
     body.append('phone', formData.phone);
     body.append('password', formData.password);
-    body.append('idFile', formData.idFile);
+    if (formData.idFile) body.append('idFile', formData.idFile);
 
     setSubmitting(true);
     try {

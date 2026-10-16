@@ -25,18 +25,14 @@ function formatPrice(price: number | string | null | undefined, currency: string
 const CustomerWishlist = () => {
   const { data: properties = [], isLoading, isError } = useGetMyWishlistQuery();
   const [removeFromWishlist, { isLoading: isRemoving }] = useRemoveFromWishlistMutation();
-  const [removingId, setRemovingId] = useState<number | string | null>(null);
   const [removeError, setRemoveError] = useState<string | null>(null);
 
   const handleRemove = async (propertyId: number | string) => {
-    setRemovingId(propertyId);
     setRemoveError(null);
     try {
       await removeFromWishlist(propertyId).unwrap();
     } catch {
       setRemoveError('Could not remove this property. Please try again.');
-    } finally {
-      setRemovingId(null);
     }
   };
 

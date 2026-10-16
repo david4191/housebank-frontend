@@ -89,7 +89,7 @@ export default function SignUpSeller() {
     body.append('email', formData.email.trim());
     body.append('phone', formData.phone);
     body.append('password', formData.password);
-    body.append('cacFile', formData.cacFile);
+    if (formData.cacFile) body.append('cacFile', formData.cacFile);
 
     setSubmitting(true);
     try {
