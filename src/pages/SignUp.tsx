@@ -5,6 +5,7 @@ import Button from '../components/Button.tsx';
 import { authContainerStyle, authInputStyle } from './SignIn.tsx';
 import useAuth from '../hooks/useAuth.tsx';
 import { isValidEmail } from '../utils/emailValidation.ts';
+import { AuthFieldError, AuthFormNotice } from '../components/AuthFormFeedback.tsx';
 
 // Registered company / agency sign-up. Matches hb-backend's `role: 'company'`
 // shape: companyName, companyAddress, cacNumber, email, phone, password, and
@@ -26,7 +27,7 @@ export default function SignUpSeller() {
     cacFile: null as File | null,
   });
   const [error, setError] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
   const auth = useAuth();
@@ -34,42 +35,49 @@ export default function SignUpSeller() {
 
   const update =
     (field: 'companyName' | 'companyAddress' | 'cacNumber' | 'email' | 'phone' | 'password' | 'confirmPassword') =>
-    (e: React.ChangeEvent<HTMLInputElement>) =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
       setFormData({ ...formData, [field]: e.target.value });
+      setFieldErrors((current) => {
+        const next = { ...current };
+        delete next[field];
+        return next;
+      });
+      setError('');
+    };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) setFormData({ ...formData, cacFile: e.target.files[0] });
+    setFieldErrors((current) => {
+      const next = { ...current };
+      delete next.cacFile;
+      return next;
+    });
+    setError('');
   };
 
   const handleSubmit = async () => {
+    if (submitting) return;
     setError('');
     setFieldErrors({});
 
-    if (
-      !formData.companyName ||
-      !formData.companyAddress ||
-      !formData.cacNumber ||
-      !formData.email ||
-      !formData.phone ||
-      !formData.password
-    ) {
-      setError('Please fill in every field.');
-      return;
+    const validationErrors: Record<string, string> = {};
+    if (!formData.companyName.trim()) validationErrors.companyName = 'Enter your company name.';
+    if (!formData.companyAddress.trim()) validationErrors.companyAddress = 'Enter your company address.';
+    if (!formData.cacNumber.trim()) validationErrors.cacNumber = 'Enter your registration number.';
+    if (!formData.email.trim()) validationErrors.email = 'Enter your email address.';
+    else if (!isValidEmail(formData.email)) validationErrors.email = 'Enter a valid email address.';
+    if (!formData.phone.trim()) validationErrors.phone = 'Enter your phone number.';
+    if (!formData.password) validationErrors.password = 'Choose a password.';
+    else if (formData.password.length < 8 || !/[a-zA-Z]/.test(formData.password) || !/\d/.test(formData.password)) {
+      validationErrors.password = 'Use at least 8 characters, including a letter and a number.';
     }
-    if (!isValidEmail(formData.email)) {
-      setError('Please enter a valid email address.');
-      return;
+    if (!formData.confirmPassword) validationErrors.confirmPassword = 'Confirm your password.';
+    else if (formData.password !== formData.confirmPassword) {
+      validationErrors.confirmPassword = 'Passwords do not match.';
     }
-    if (formData.password.length < 8 || !/[a-zA-Z]/.test(formData.password) || !/\d/.test(formData.password)) {
-      setError('Password must be at least 8 characters and include a letter and a number.');
-      return;
-    }
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
-    if (!formData.cacFile) {
-      setError('A CAC registration certificate is required.');
+    if (!formData.cacFile) validationErrors.cacFile = 'Upload your registration certificate.';
+    if (Object.keys(validationErrors).length > 0) {
+      setFieldErrors(validationErrors);
       return;
     }
 
@@ -84,15 +92,19 @@ export default function SignUpSeller() {
     body.append('cacFile', formData.cacFile);
 
     setSubmitting(true);
-    const result = await auth.register(body);
-    setSubmitting(false);
-
-    if (result.ok) {
-      navigate('/verify-otp', { state: { userId: result.userId, purpose: 'signup_verification' } });
-      return;
+    try {
+      const result = await auth.register(body);
+      if (result.ok) {
+        navigate('/verify-otp', { state: { userId: result.userId, purpose: 'signup_verification' } });
+        return;
+      }
+      setFieldErrors(result.errors);
+      setError(result.message);
+    } catch {
+      setError("We couldn't reach our service just now. Please try again in a moment.");
+    } finally {
+      setSubmitting(false);
     }
-    if (result.errors) setFieldErrors(result.errors);
-    setError(result.message);
   };
 
   return (
@@ -114,8 +126,10 @@ export default function SignUpSeller() {
               placeholder="e.g Acme Realty Ltd"
               value={formData.companyName}
               onChange={update('companyName')}
+              aria-invalid={Boolean(fieldErrors.companyName)}
+              aria-describedby={fieldErrors.companyName ? 'company-name-error' : undefined}
             />
-            {fieldErrors.companyName && <p className="mt-1 text-sm text-red-600">{fieldErrors.companyName[0]}</p>}
+            <AuthFieldError id="company-name-error" message={fieldErrors.companyName} />
           </div>
 
           <div className="flex-1">
@@ -126,8 +140,10 @@ export default function SignUpSeller() {
               placeholder="e.g 123 Main Street"
               value={formData.companyAddress}
               onChange={update('companyAddress')}
+              aria-invalid={Boolean(fieldErrors.companyAddress)}
+              aria-describedby={fieldErrors.companyAddress ? 'company-address-error' : undefined}
             />
-            {fieldErrors.companyAddress && <p className="mt-1 text-sm text-red-600">{fieldErrors.companyAddress[0]}</p>}
+            <AuthFieldError id="company-address-error" message={fieldErrors.companyAddress} />
           </div>
         </div>
 
@@ -139,8 +155,10 @@ export default function SignUpSeller() {
             placeholder="e.g RC123456"
             value={formData.cacNumber}
             onChange={update('cacNumber')}
+            aria-invalid={Boolean(fieldErrors.cacNumber)}
+            aria-describedby={fieldErrors.cacNumber ? 'cac-number-error' : undefined}
           />
-          {fieldErrors.cacNumber && <p className="mt-1 text-sm text-red-600">{fieldErrors.cacNumber[0]}</p>}
+          <AuthFieldError id="cac-number-error" message={fieldErrors.cacNumber} />
         </div>
 
         <div className="mb-6">
@@ -151,8 +169,10 @@ export default function SignUpSeller() {
             placeholder="e.g john@company.com"
             value={formData.email}
             onChange={update('email')}
+            aria-invalid={Boolean(fieldErrors.email)}
+            aria-describedby={fieldErrors.email ? 'company-email-error' : undefined}
           />
-          {fieldErrors.email && <p className="mt-1 text-sm text-red-600">{fieldErrors.email[0]}</p>}
+          <AuthFieldError id="company-email-error" message={fieldErrors.email} />
         </div>
 
         <div className="mb-6">
@@ -163,8 +183,10 @@ export default function SignUpSeller() {
             placeholder="+234"
             value={formData.phone}
             onChange={update('phone')}
+            aria-invalid={Boolean(fieldErrors.phone)}
+            aria-describedby={fieldErrors.phone ? 'company-phone-error' : undefined}
           />
-          {fieldErrors.phone && <p className="mt-1 text-sm text-red-600">{fieldErrors.phone[0]}</p>}
+          <AuthFieldError id="company-phone-error" message={fieldErrors.phone} />
         </div>
 
         <div className="mb-6">
@@ -175,7 +197,10 @@ export default function SignUpSeller() {
             placeholder="At least 8 characters"
             value={formData.password}
             onChange={update('password')}
+            aria-invalid={Boolean(fieldErrors.password)}
+            aria-describedby={fieldErrors.password ? 'company-password-error' : undefined}
           />
+          <AuthFieldError id="company-password-error" message={fieldErrors.password} />
         </div>
 
         <div className="mb-6">
@@ -186,7 +211,10 @@ export default function SignUpSeller() {
             placeholder="Re-enter your password"
             value={formData.confirmPassword}
             onChange={update('confirmPassword')}
+            aria-invalid={Boolean(fieldErrors.confirmPassword)}
+            aria-describedby={fieldErrors.confirmPassword ? 'company-confirm-password-error' : undefined}
           />
+          <AuthFieldError id="company-confirm-password-error" message={fieldErrors.confirmPassword} />
         </div>
 
         <div className="mb-8">
@@ -210,11 +238,13 @@ export default function SignUpSeller() {
             className="hidden"
             onChange={handleFileChange}
             accept=".jpg,.jpeg,.png,.pdf"
+            aria-invalid={Boolean(fieldErrors.cacFile)}
+            aria-describedby={fieldErrors.cacFile ? 'company-certificate-error' : undefined}
           />
-          {fieldErrors.cacFile && <p className="mt-1 text-sm text-red-600">{fieldErrors.cacFile[0]}</p>}
+          <AuthFieldError id="company-certificate-error" message={fieldErrors.cacFile} />
         </div>
 
-        {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+        <AuthFormNotice message={error} />
       </div>
       <div className="w-full sm:w-2/5 mt-8">
         <Button text={submitting ? 'Signing up…' : 'Sign Up'} onClick={handleSubmit} />

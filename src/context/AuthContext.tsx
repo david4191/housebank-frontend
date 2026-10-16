@@ -22,6 +22,7 @@ import {
   REFRESH_COOKIE_AGE,
   clearAuthCookies,
 } from '../utils/cookie.ts';
+import { mapRegistrationError, type RegistrationFieldErrors } from '../utils/registrationError.ts';
 
 export type HouseBankRole = 'customer' | 'agent' | 'company' | 'admin';
 
@@ -85,7 +86,10 @@ interface AuthContextType {
   ) => Promise<{ ok: true; user: HouseBankUser; usedRecoveryCode: boolean } | { ok: false; message: string }>;
   register: (
     payload: any
-  ) => Promise<{ ok: true; userId: number; email: string } | { ok: false; message: string; errors?: Record<string, string[]> }>;
+  ) => Promise<
+    | { ok: true; userId: number; email: string }
+    | { ok: false; message: string; errors: RegistrationFieldErrors }
+  >;
   verifyOtp: (
     userId: number,
     code: string
@@ -175,16 +179,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // (see hb-backend/docs/API_CONTRACT.md). Callers should route to the OTP
   // screen with the returned userId.
   const register: AuthContextType['register'] = async (payload) => {
-    const result = await registerUser(payload);
-    if ('data' in result && result.data) {
-      return { ok: true, userId: result.data.user_id, email: result.data.email };
+    try {
+      const result = await registerUser(payload);
+      if (
+        'data' in result &&
+        result.data &&
+        typeof result.data.user_id === 'number' &&
+        typeof result.data.email === 'string'
+      ) {
+        return { ok: true, userId: result.data.user_id, email: result.data.email };
+      }
+
+      const failure = mapRegistrationError('error' in result ? result.error : null);
+      return { ok: false, message: failure.message, errors: failure.fieldErrors };
+    } catch {
+      const failure = mapRegistrationError(null);
+      return { ok: false, message: failure.message, errors: failure.fieldErrors };
     }
-    const err: any = 'error' in result ? result.error : null;
-    return {
-      ok: false,
-      message: err?.message || 'Unable to create your account. Please check your details and try again.',
-      errors: err?.errors,
-    };
   };
 
   const verifyOtp: AuthContextType['verifyOtp'] = async (userId, code) => {

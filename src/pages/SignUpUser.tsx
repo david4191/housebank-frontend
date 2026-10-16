@@ -6,6 +6,7 @@ import { authContainerStyle, authInputStyle } from './SignIn.tsx';
 import Button from '../components/Button.tsx';
 import useAuth from '../hooks/useAuth.tsx';
 import { isValidEmail } from '../utils/emailValidation.ts';
+import { AuthFieldError, AuthFormNotice } from '../components/AuthFormFeedback.tsx';
 
 // This is the plain customer (property buyer/browser) sign-up form — no
 // documents required, matching hb-backend's `role: 'customer'` signup shape
@@ -25,52 +26,65 @@ export default function SignUpUser() {
     confirmPassword: '',
   });
   const [error, setError] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
   const auth = useAuth();
   const navigate = useNavigate();
 
-  const update = (field: keyof typeof formData) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const update = (field: keyof typeof formData) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [field]: e.target.value });
+    setFieldErrors((current) => {
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
+    setError('');
+  };
 
   const handleSubmit = async () => {
+    if (submitting) return;
     setError('');
     setFieldErrors({});
 
-    if (!formData.fullName || !formData.email || !formData.phone || !formData.password) {
-      setError('Please fill in every field.');
-      return;
+    const validationErrors: Record<string, string> = {};
+    if (!formData.fullName.trim()) validationErrors.fullName = 'Enter your full name.';
+    if (!formData.email.trim()) validationErrors.email = 'Enter your email address.';
+    else if (!isValidEmail(formData.email)) validationErrors.email = 'Enter a valid email address.';
+    if (!formData.phone.trim()) validationErrors.phone = 'Enter your phone number.';
+    if (!formData.password) validationErrors.password = 'Choose a password.';
+    else if (formData.password.length < 8 || !/[a-zA-Z]/.test(formData.password) || !/\d/.test(formData.password)) {
+      validationErrors.password = 'Use at least 8 characters, including a letter and a number.';
     }
-    if (!isValidEmail(formData.email)) {
-      setError('Please enter a valid email address.');
-      return;
+    if (!formData.confirmPassword) validationErrors.confirmPassword = 'Confirm your password.';
+    else if (formData.password !== formData.confirmPassword) {
+      validationErrors.confirmPassword = 'Passwords do not match.';
     }
-    if (formData.password.length < 8 || !/[a-zA-Z]/.test(formData.password) || !/\d/.test(formData.password)) {
-      setError('Password must be at least 8 characters and include a letter and a number.');
-      return;
-    }
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match.');
+    if (Object.keys(validationErrors).length > 0) {
+      setFieldErrors(validationErrors);
       return;
     }
 
     setSubmitting(true);
-    const result = await auth.register({
-      role: 'customer',
-      fullName: formData.fullName,
-      email: formData.email.trim(),
-      phone: formData.phone,
-      password: formData.password,
-    });
-    setSubmitting(false);
-
-    if (result.ok) {
-      navigate('/verify-otp', { state: { userId: result.userId, purpose: 'signup_verification' } });
-      return;
+    try {
+      const result = await auth.register({
+        role: 'customer',
+        fullName: formData.fullName,
+        email: formData.email.trim(),
+        phone: formData.phone,
+        password: formData.password,
+      });
+      if (result.ok) {
+        navigate('/verify-otp', { state: { userId: result.userId, purpose: 'signup_verification' } });
+        return;
+      }
+      setFieldErrors(result.errors);
+      setError(result.message);
+    } catch {
+      setError("We couldn't reach our service just now. Please try again in a moment.");
+    } finally {
+      setSubmitting(false);
     }
-    if (result.errors) setFieldErrors(result.errors);
-    setError(result.message);
   };
 
   return (
@@ -91,8 +105,10 @@ export default function SignUpUser() {
             placeholder="e.g John Doe"
             value={formData.fullName}
             onChange={update('fullName')}
+            aria-invalid={Boolean(fieldErrors.fullName)}
+            aria-describedby={fieldErrors.fullName ? 'signup-full-name-error' : undefined}
           />
-          {fieldErrors.fullName && <p className="mt-1 text-sm text-red-600">{fieldErrors.fullName[0]}</p>}
+          <AuthFieldError id="signup-full-name-error" message={fieldErrors.fullName} />
         </div>
 
         <div className="mb-6 w-full">
@@ -103,8 +119,10 @@ export default function SignUpUser() {
             placeholder="e.g john@example.com"
             value={formData.email}
             onChange={update('email')}
+            aria-invalid={Boolean(fieldErrors.email)}
+            aria-describedby={fieldErrors.email ? 'signup-email-error' : undefined}
           />
-          {fieldErrors.email && <p className="mt-1 text-sm text-red-600">{fieldErrors.email[0]}</p>}
+          <AuthFieldError id="signup-email-error" message={fieldErrors.email} />
         </div>
 
         <div className="mb-6 w-full">
@@ -115,8 +133,10 @@ export default function SignUpUser() {
             placeholder="+234 800 000 0000"
             value={formData.phone}
             onChange={update('phone')}
+            aria-invalid={Boolean(fieldErrors.phone)}
+            aria-describedby={fieldErrors.phone ? 'signup-phone-error' : undefined}
           />
-          {fieldErrors.phone && <p className="mt-1 text-sm text-red-600">{fieldErrors.phone[0]}</p>}
+          <AuthFieldError id="signup-phone-error" message={fieldErrors.phone} />
         </div>
 
         <div className="mb-6 w-full">
@@ -127,7 +147,10 @@ export default function SignUpUser() {
             placeholder="At least 8 characters"
             value={formData.password}
             onChange={update('password')}
+            aria-invalid={Boolean(fieldErrors.password)}
+            aria-describedby={fieldErrors.password ? 'signup-password-error' : undefined}
           />
+          <AuthFieldError id="signup-password-error" message={fieldErrors.password} />
         </div>
 
         <div className="mb-6 w-full">
@@ -138,10 +161,13 @@ export default function SignUpUser() {
             placeholder="Re-enter your password"
             value={formData.confirmPassword}
             onChange={update('confirmPassword')}
+            aria-invalid={Boolean(fieldErrors.confirmPassword)}
+            aria-describedby={fieldErrors.confirmPassword ? 'signup-confirm-password-error' : undefined}
           />
+          <AuthFieldError id="signup-confirm-password-error" message={fieldErrors.confirmPassword} />
         </div>
 
-        {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+        <AuthFormNotice message={error} />
 
         {/* Realtors don't self-register here or anywhere public (Joan,
             Sep 2026: "the registration for realtors shouldnt show in

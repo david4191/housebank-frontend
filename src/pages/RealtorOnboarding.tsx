@@ -5,6 +5,7 @@ import Button from '../components/Button.tsx';
 import { authContainerStyle, authInputStyle } from './SignIn.tsx';
 import useAuth from '../hooks/useAuth.tsx';
 import { useGetInviteByTokenQuery } from '../redux/housebank.ts';
+import { AuthFieldError, AuthFormNotice } from '../components/AuthFormFeedback.tsx';
 
 /**
  * Realtor onboarding — Joan, Sep 2026: "since its the company that adds
@@ -38,39 +39,57 @@ export default function RealtorOnboarding() {
     idFile: null as File | null,
   });
   const [error, setError] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
   const auth = useAuth();
   const navigate = useNavigate();
 
   const update = (field: 'fullName' | 'phone' | 'password' | 'confirmPassword') =>
-    (e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, [field]: e.target.value });
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setFormData({ ...formData, [field]: e.target.value });
+      setFieldErrors((current) => {
+        const next = { ...current };
+        delete next[field];
+        return next;
+      });
+      setError('');
+    };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) setFormData({ ...formData, idFile: e.target.files[0] });
+    setFieldErrors((current) => {
+      const next = { ...current };
+      delete next.idFile;
+      return next;
+    });
+    setError('');
   };
 
   const handleSubmit = async () => {
+    if (submitting) return;
     setError('');
     setFieldErrors({});
 
-    if (!invite) return;
+    if (!invite) {
+      setError('We could not verify this invitation. Please refresh the page and try again.');
+      return;
+    }
 
-    if (!formData.fullName || !formData.phone || !formData.password) {
-      setError('Please fill in every field.');
-      return;
+    const validationErrors: Record<string, string> = {};
+    if (!formData.fullName.trim()) validationErrors.fullName = 'Enter your full name.';
+    if (!formData.phone.trim()) validationErrors.phone = 'Enter your phone number.';
+    if (!formData.password) validationErrors.password = 'Choose a password.';
+    else if (formData.password.length < 8 || !/[a-zA-Z]/.test(formData.password) || !/\d/.test(formData.password)) {
+      validationErrors.password = 'Use at least 8 characters, including a letter and a number.';
     }
-    if (formData.password.length < 8 || !/[a-zA-Z]/.test(formData.password) || !/\d/.test(formData.password)) {
-      setError('Password must be at least 8 characters and include a letter and a number.');
-      return;
+    if (!formData.confirmPassword) validationErrors.confirmPassword = 'Confirm your password.';
+    else if (formData.password !== formData.confirmPassword) {
+      validationErrors.confirmPassword = 'Passwords do not match.';
     }
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
-    if (!formData.idFile) {
-      setError('A valid government-issued ID is required.');
+    if (!formData.idFile) validationErrors.idFile = 'Upload a valid government-issued ID.';
+    if (Object.keys(validationErrors).length > 0) {
+      setFieldErrors(validationErrors);
       return;
     }
 
@@ -83,15 +102,19 @@ export default function RealtorOnboarding() {
     body.append('idFile', formData.idFile);
 
     setSubmitting(true);
-    const result = await auth.register(body);
-    setSubmitting(false);
-
-    if (result.ok) {
-      navigate('/verify-otp', { state: { userId: result.userId, purpose: 'signup_verification' } });
-      return;
+    try {
+      const result = await auth.register(body);
+      if (result.ok) {
+        navigate('/verify-otp', { state: { userId: result.userId, purpose: 'signup_verification' } });
+        return;
+      }
+      setFieldErrors(result.errors);
+      setError(result.message);
+    } catch {
+      setError("We couldn't reach our service just now. Please try again in a moment.");
+    } finally {
+      setSubmitting(false);
     }
-    if (result.errors) setFieldErrors(result.errors);
-    setError(result.message);
   };
 
   if (isLoading) {
@@ -143,8 +166,10 @@ export default function RealtorOnboarding() {
             placeholder="e.g John Doe"
             value={formData.fullName}
             onChange={update('fullName')}
+            aria-invalid={Boolean(fieldErrors.fullName)}
+            aria-describedby={fieldErrors.fullName ? 'onboarding-full-name-error' : undefined}
           />
-          {fieldErrors.fullName && <p className="mt-1 text-sm text-red-600">{fieldErrors.fullName[0]}</p>}
+          <AuthFieldError id="onboarding-full-name-error" message={fieldErrors.fullName} />
         </div>
 
         <div className="mb-6 w-full">
@@ -169,8 +194,10 @@ export default function RealtorOnboarding() {
             placeholder="+234"
             value={formData.phone}
             onChange={update('phone')}
+            aria-invalid={Boolean(fieldErrors.phone)}
+            aria-describedby={fieldErrors.phone ? 'onboarding-phone-error' : undefined}
           />
-          {fieldErrors.phone && <p className="mt-1 text-sm text-red-600">{fieldErrors.phone[0]}</p>}
+          <AuthFieldError id="onboarding-phone-error" message={fieldErrors.phone} />
         </div>
 
         <div className="mb-6 w-full">
@@ -181,7 +208,10 @@ export default function RealtorOnboarding() {
             placeholder="At least 8 characters"
             value={formData.password}
             onChange={update('password')}
+            aria-invalid={Boolean(fieldErrors.password)}
+            aria-describedby={fieldErrors.password ? 'onboarding-password-error' : undefined}
           />
+          <AuthFieldError id="onboarding-password-error" message={fieldErrors.password} />
         </div>
 
         <div className="mb-6 w-full">
@@ -192,7 +222,10 @@ export default function RealtorOnboarding() {
             placeholder="Re-enter your password"
             value={formData.confirmPassword}
             onChange={update('confirmPassword')}
+            aria-invalid={Boolean(fieldErrors.confirmPassword)}
+            aria-describedby={fieldErrors.confirmPassword ? 'onboarding-confirm-password-error' : undefined}
           />
+          <AuthFieldError id="onboarding-confirm-password-error" message={fieldErrors.confirmPassword} />
         </div>
 
         <div className="mb-6 w-full">
@@ -216,11 +249,13 @@ export default function RealtorOnboarding() {
             className="hidden"
             onChange={handleFileChange}
             accept=".jpg,.jpeg,.png,.pdf"
+            aria-invalid={Boolean(fieldErrors.idFile)}
+            aria-describedby={fieldErrors.idFile ? 'onboarding-id-error' : undefined}
           />
-          {fieldErrors.idFile && <p className="mt-1 text-sm text-red-600">{fieldErrors.idFile[0]}</p>}
+          <AuthFieldError id="onboarding-id-error" message={fieldErrors.idFile} />
         </div>
 
-        {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+        <AuthFormNotice message={error} />
       </div>
 
       <div className="w-full sm:w-2/5 mt-8">

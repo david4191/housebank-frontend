@@ -103,9 +103,9 @@ export const houseBankApi = createApi({
     // set its own multipart Content-Type/boundary — do NOT spread it into a
     // plain object here, that silently drops every file.
     registerUser: builder.mutation<{ user_id: number; email: string }, any>({
-      query: (payload) => ({ url: 'auth/signup', method: 'POST', body: payload }),
+      query: (payload) => ({ url: 'auth/signup', method: 'POST', body: payload, timeout: 15000 }),
       transformResponse: (response: Envelope) => response.data,
-      transformErrorResponse: (response) => response.data as Envelope,
+      transformErrorResponse: (response) => ({ status: response.status, data: response.data }),
       invalidatesTags: ['auth'],
     }),
 
