@@ -9,7 +9,7 @@ export default defineConfig({
     proxy: {
       // Add this proxy configuration
       '/api': {
-        target: 'https://housebank-frontend.onrender.com', // Your backend port
+        target: 'https://housebank-backend.onrender.com', // Your backend port
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       }
