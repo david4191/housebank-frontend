@@ -8,24 +8,22 @@ plain files (Apache/LiteSpeed), same as any HTML site. The backend
 ## 0. Point the build at your real API before building
 
 Vite bakes `VITE_APP_BACKEND_HOST` into the JS bundle at **build time** —
-it's not read at runtime like a normal backend env var. Your working
-`.env.local` currently points at `https://dan.pxxlspace.cv/`, and Vite
-loads `.env.local` in every mode, including production builds, so a
-plain `npm run build` right now would ship a frontend that calls your
-laptop.
+it's not read at runtime like a normal backend env var. The checked-in
+`.env.production` points production builds at the Render API. If a local
+`.env.local` overrides it, create `.env.production.local` in this folder:
 
 Before building for deployment, create `.env.production.local` (git-
 ignored, same as `.env.local`) in this folder:
 
 ```
-VITE_APP_BACKEND_HOST=https://api.yourdomain.com/
+VITE_APP_BACKEND_HOST=https://housebank-backend.onrender.com/
 ```
 
-(That's the API subdomain from the backend's `docs/DEPLOYMENT.md` step
-3 — must match exactly, trailing slash included, matching how
-`src/redux/housebank.ts` builds request URLs.) `.env.production.local`
-outranks `.env.local` for production builds, so this overrides it
-without touching your local dev setup.
+The trailing slash is required because `src/redux/housebank.ts` appends
+endpoint paths directly. `.env.production.local` outranks `.env.local`
+for production builds, so this overrides a local development URL without
+changing your local dev setup. Set the same `VITE_APP_BACKEND_HOST` in
+your hosting provider's build environment if builds happen there.
 
 ## 1. Build
 
