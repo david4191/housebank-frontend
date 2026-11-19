@@ -16,7 +16,7 @@ Before building for deployment, create `.env.production.local` (git-
 ignored, same as `.env.local`) in this folder:
 
 ```
-VITE_APP_BACKEND_HOST=https://housebank-backend.onrender.com/
+VITE_APP_BACKEND_HOST=https://housebank-backend-j5a6.onrender.com/
 ```
 
 The trailing slash is required because `src/redux/housebank.ts` appends
