@@ -5,10 +5,20 @@ import Button from '../components/Button.tsx';
 import { authContainerStyle, authOTPInputStyle } from './SignIn.tsx';
 import useAuth from '../hooks/useAuth.tsx';
 import { roleHomePath } from '../context/AuthContext.tsx';
+import Seo from '../components/Seo.tsx';
 
 const CODE_LENGTH = 6; // matches the backend's 6-digit OTP (see hb-backend/src/models/OtpCode.js)
 
-import Seo from '../components/Seo.tsx';
+const resendErrorMessage = (error: unknown): string => {
+  if (error && typeof error === 'object') {
+    if ('data' in error && error.data && typeof error.data === 'object' && 'message' in error.data) {
+      const { message } = error.data;
+      if (typeof message === 'string') return message;
+    }
+    if ('message' in error && typeof error.message === 'string') return error.message;
+  }
+  return 'Could not resend the code. Please try again.';
+};
 
 export default function OTPVerification() {
   const [otp, setOtp] = useState<string[]>(new Array(CODE_LENGTH).fill(''));
@@ -76,9 +86,14 @@ export default function OTPVerification() {
       return;
     }
     setResending(true);
-    await auth.resendOtp(userId, 'signup_verification');
-    setResending(false);
-    setNotice('A new code has been sent to your email.');
+    try {
+      await auth.resendOtp(userId, 'signup_verification');
+      setNotice('A new code has been sent to your email.');
+    } catch (error) {
+      setError(resendErrorMessage(error));
+    } finally {
+      setResending(false);
+    }
   };
 
   return (

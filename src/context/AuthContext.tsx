@@ -238,7 +238,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const resendOtp: AuthContextType['resendOtp'] = async (userId, purpose) => {
-    await resendOtpMutation({ userId, purpose });
+    await resendOtpMutation({ userId, purpose }).unwrap();
   };
 
   const forgotPassword: AuthContextType['forgotPassword'] = async (email) => {

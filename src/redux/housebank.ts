@@ -25,8 +25,12 @@ interface Envelope<T = any> {
   errors?: Record<string, string[]>;
 }
 
+const apiBaseUrl = import.meta.env.DEV
+  ? '/api/'
+  : import.meta.env.VITE_APP_BACKEND_HOST;
+
 const rawBaseQuery = fetchBaseQuery({
-  baseUrl: import.meta.env.VITE_APP_BACKEND_HOST,
+  baseUrl: apiBaseUrl,
   prepareHeaders: (headers: Headers) => {
     const token = cookieManager.get(TOKEN_COOKIE);
     if (!headers.has('Authorization') && token) {
